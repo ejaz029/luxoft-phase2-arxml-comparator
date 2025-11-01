@@ -1,374 +1,144 @@
-import React, { useState, useCallback } from 'react'
+
+// src/components/FileUpload.jsx
+import React, { useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import styled from 'styled-components'
-import { useTheme } from '../theme/ThemeProvider.jsx'
-import { Upload, File, X, AlertCircle, CheckCircle } from 'lucide-react'
+import { UploadCloud, FileText, X } from 'lucide-react'
 
-const UploadContainer = styled.div`
-  max-width: 800px;
-  margin: 0 auto;
-  padding: ${props => props.theme.spacing.xl};
-`
-
-const Title = styled.h1`
-  font-family: ${props => props.theme.typography.family.primary};
-  font-size: ${props => props.theme.typography.size['3xl']};
-  font-weight: ${props => props.theme.typography.weight.bold};
-  color: ${props => props.theme.colors.textPrimary};
-  text-align: center;
-  margin-bottom: ${props => props.theme.spacing.lg};
-`
-
-const Description = styled.p`
-  font-family: ${props => props.theme.typography.family.primary};
-  font-size: ${props => props.theme.typography.size.lg};
-  color: ${props => props.theme.colors.textSecondary};
-  text-align: center;
-  margin-bottom: ${props => props.theme.spacing['2xl']};
-  line-height: ${props => props.theme.typography.lineHeight.normal};
-`
-
+// --- Styled Components ---
 const DropzoneContainer = styled.div`
-  border: 2px dashed ${props => props.isDragActive ? props.theme.colors.primary : props.theme.colors.border};
-  border-radius: ${props => props.theme.borderRadius.lg};
-  padding: ${props => props.theme.spacing['2xl']};
+  border: 2px dashed ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  padding: ${({ theme }) => theme.spacing.xl};
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background-color: ${props => props.isDragActive ? props.theme.colors.primary + '10' : 'transparent'};
-  margin-bottom: ${props => props.theme.spacing.xl};
+  background-color: ${({ theme, $isDragActive }) => 
+    $isDragActive ? theme.colors.background : theme.colors.surface};
+  transition: all 0.2s ease-in-out;
 
   &:hover {
-    border-color: ${props => props.theme.colors.primary};
-    background-color: ${props => props.theme.colors.primary + '05'};
+    border-color: ${({ theme }) => theme.colors.primary};
   }
-`
+`;
 
-const DropzoneContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: ${props => props.theme.spacing.md};
-`
+const UploadText = styled.p`
+  font-size: ${({ theme }) => theme.typography.size.base};
+  color: ${({ theme }) => theme.colors.textSecondary};
+  margin: ${({ theme }) => theme.spacing.md} 0 0 0;
+`;
 
-const UploadIcon = styled(Upload)`
-  width: 48px;
-  height: 48px;
-  color: ${props => props.theme.colors.primary};
-`
-
-const DropzoneText = styled.div`
-  font-family: ${props => props.theme.typography.family.primary};
-  font-size: ${props => props.theme.typography.size.lg};
-  font-weight: ${props => props.theme.typography.weight.medium};
-  color: ${props => props.theme.colors.textPrimary};
-  margin-bottom: ${props => props.theme.spacing.sm};
-`
-
-const DropzoneSubtext = styled.div`
-  font-family: ${props => props.theme.typography.family.primary};
-  font-size: ${props => props.theme.typography.size.sm};
-  color: ${props => props.theme.colors.textSecondary};
-`
+const SupportText = styled.p`
+  font-size: ${({ theme }) => theme.typography.size.sm};
+  color: ${({ theme }) => theme.colors.textDisabled};
+`;
 
 const FileList = styled.div`
-  margin-bottom: ${props => props.theme.spacing.xl};
-`
+  margin-top: ${({ theme }) => theme.spacing.lg};
+  min-height: 50px;
+`;
 
 const FileItem = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${props => props.theme.spacing.md};
-  border: 1px solid ${props => props.theme.colors.border};
-  border-radius: ${props => props.theme.borderRadius.md};
-  margin-bottom: ${props => props.theme.spacing.sm};
-  background-color: ${props => props.theme.colors.surface};
-`
-
-const FileInfo = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${props => props.theme.spacing.sm};
-`
-
-const FileIcon = styled(File)`
-  width: 20px;
-  height: 20px;
-  color: ${props => props.theme.colors.primary};
-`
+  padding: ${({ theme }) => theme.spacing.sm};
+  background-color: ${({ theme }) => theme.colors.background};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  margin-bottom: ${({ theme }) => theme.spacing.sm};
+`;
 
 const FileName = styled.span`
-  font-family: ${props => props.theme.typography.family.primary};
-  font-size: ${props => props.theme.typography.size.base};
-  color: ${props => props.theme.colors.textPrimary};
-`
-
-const FileSize = styled.span`
-  font-family: ${props => props.theme.typography.family.primary};
-  font-size: ${props => props.theme.typography.size.sm};
-  color: ${props => props.theme.colors.textSecondary};
-`
+  font-family: ${({ theme }) => theme.typography.family.secondary};
+  color: ${({ theme }) => theme.colors.textPrimary};
+  margin-left: ${({ theme }) => theme.spacing.sm};
+`;
 
 const RemoveButton = styled.button`
   background: none;
   border: none;
+  color: ${({ theme }) => theme.colors.textDisabled};
   cursor: pointer;
-  padding: ${props => props.theme.spacing.xs};
-  border-radius: ${props => props.theme.borderRadius.sm};
-  color: ${props => props.theme.colors.danger};
-  transition: background-color 0.2s ease;
-
   &:hover {
-    background-color: ${props => props.theme.colors.danger + '10'};
+    color: ${({ theme }) => theme.colors.danger};
   }
-`
+`;
 
-const ValidationMessage = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${props => props.theme.spacing.sm};
-  padding: ${props => props.theme.spacing.md};
-  border-radius: ${props => props.theme.borderRadius.md};
-  margin-bottom: ${props => props.theme.spacing.lg};
-  background-color: ${props => props.isError ? props.theme.colors.danger + '10' : props.theme.colors.success + '10'};
-  border: 1px solid ${props => props.isError ? props.theme.colors.danger : props.theme.colors.success};
-`
-
-const ValidationIcon = styled.div`
-  color: ${props => props.isError ? props.theme.colors.danger : props.theme.colors.success};
-`
-
-const ValidationText = styled.span`
-  font-family: ${props => props.theme.typography.family.primary};
-  font-size: ${props => props.theme.typography.size.sm};
-  color: ${props => props.isError ? props.theme.colors.danger : props.theme.colors.success};
-  font-weight: ${props => props.theme.typography.weight.medium};
-`
-
-const SubmitButton = styled.button`
-  width: 100%;
-  padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.xl};
-  background-color: ${props => props.disabled ? props.theme.colors.textDisabled : props.theme.colors.primary};
-  color: white;
-  border: none;
-  border-radius: ${props => props.theme.borderRadius.md};
-  font-family: ${props => props.theme.typography.family.primary};
-  font-size: ${props => props.theme.typography.size.lg};
-  font-weight: ${props => props.theme.typography.weight.semibold};
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: all 0.3s ease;
-  opacity: ${props => props.disabled ? 0.6 : 1};
-
-  &:hover:not(:disabled) {
-    background-color: ${props => props.theme.colors.primary};
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px ${props => props.theme.colors.primary + '30'};
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(0);
-  }
-`
-
-const FileUpload = ({ onComparisonComplete, isLoading, setIsLoading }) => {
-  const { currentTheme } = useTheme()
-  const [files, setFiles] = useState([])
-  const [validationMessage, setValidationMessage] = useState('')
-
-  // File validation function
-  const validateFiles = (fileList) => {
-    const validExtensions = ['.arxml', '.xsd']
-    const errors = []
-
-    // Check file count
-    if (fileList.length === 0) {
-      errors.push('Please upload at least one file')
-    } else if (fileList.length > 2) {
-      errors.push('Maximum 2 files allowed for comparison')
-    }
-
-    // Check file extensions
-    fileList.forEach((file, index) => {
-      const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'))
-      if (!validExtensions.includes(extension)) {
-        errors.push(`File ${index + 1}: Only .arxml and .xsd files are allowed`)
-      }
-    })
-
-    // Check for at least one ARXML file
-    const hasArxml = fileList.some(file => 
-      file.name.toLowerCase().endsWith('.arxml')
-    )
-    if (fileList.length > 0 && !hasArxml) {
-      errors.push('At least one .arxml file is required')
-    }
-
-    return errors
-  }
-
-  const onDrop = useCallback((acceptedFiles) => {
-    const newFiles = [...files, ...acceptedFiles]
-    const errors = validateFiles(newFiles)
+// --- File Upload Component ---
+function FileUpload({ files, setFiles, setError, validateFiles, comparisonType }) {
+  // Determine max files based on comparison type
+  const maxFiles = comparisonType === 'full' ? 3 : undefined; // Full: max 3 (2 ARXML + 1 XSD), Schema: unlimited
+  
+  const onDrop = useCallback((acceptedFiles, fileRejections) => {
+    setError(null);
     
-    if (errors.length > 0) {
-      setValidationMessage(errors[0])
-      setFiles([]) // Clear files if validation fails
-    } else {
-      setFiles(newFiles)
-      setValidationMessage('')
+    if (fileRejections.length > 0) {
+      setError("Invalid file type. Only .arxml and .xsd are supported.");
+      return;
     }
-  }, [files])
-
-  const removeFile = (indexToRemove) => {
-    const newFiles = files.filter((_, index) => index !== indexToRemove)
-    setFiles(newFiles)
     
-    if (newFiles.length === 0) {
-      setValidationMessage('')
-    } else {
-      const errors = validateFiles(newFiles)
-      if (errors.length > 0) {
-        setValidationMessage(errors[0])
-      } else {
-        setValidationMessage('')
+    // For Full Comparison, limit total files to 3
+    if (comparisonType === 'full') {
+      const totalFiles = files.length + acceptedFiles.length;
+      if (totalFiles > 3) {
+        setError('Maximum 3 files allowed for Full Comparison (2 ARXML + 1 optional XSD)');
+        return;
       }
     }
-  }
+    
+    const newFiles = [...files, ...acceptedFiles];
+    
+    if (validateFiles(newFiles)) {
+      setFiles(newFiles);
+    }
+  }, [files, setFiles, setError, validateFiles, comparisonType]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'application/xml': ['.arxml', '.xsd'],
-      'text/xml': ['.arxml', '.xsd']
+      'application/xml': ['.arxml'],
+      'text/xml': ['.xsd'],
     },
-    multiple: true
-  })
+    maxFiles: maxFiles
+  });
 
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
-
-  const handleSubmit = async () => {
-    if (files.length === 0) return
-    
-    setIsLoading(true)
-    try {
-      // Simulate API call - replace with actual implementation
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Mock comparison data
-      const mockData = {
-        files: files.map(f => f.name),
-        differences: [
-          { type: 'added', path: 'ECU/SoftwareComponent', description: 'New software component added' },
-          { type: 'modified', path: 'ECU/Configuration', description: 'Configuration parameter changed' },
-          { type: 'removed', path: 'ECU/Interface', description: 'Interface removed' }
-        ],
-        summary: '3 differences found between the ARXML files'
-      }
-      
-      onComparisonComplete(mockData)
-    } catch (error) {
-      console.error('Comparison failed:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const isSubmitDisabled = files.length === 0 || validationMessage !== '' || isLoading
+  const removeFile = (e, fileName) => {
+    e.stopPropagation();
+    const newFiles = files.filter(f => f.name !== fileName);
+    setFiles(newFiles);
+    validateFiles(newFiles);
+  };
 
   return (
-    <UploadContainer theme={currentTheme}>
-      <Title theme={currentTheme}>
-        ARXML Semantic Comparator
-      </Title>
-      
-      <Description theme={currentTheme}>
-        Upload your ARXML and XSD files to perform a semantic comparison. 
-        Maximum 2 files allowed, at least one must be an ARXML file.
-      </Description>
-
-      <DropzoneContainer 
-        {...getRootProps()} 
-        isDragActive={isDragActive}
-        theme={currentTheme}
-      >
+    <>
+      <DropzoneContainer {...getRootProps()} $isDragActive={isDragActive}>
         <input {...getInputProps()} />
-        <DropzoneContent theme={currentTheme}>
-          <UploadIcon theme={currentTheme} />
-          <DropzoneText theme={currentTheme}>
-            {isDragActive ? 'Drop files here' : 'Drag & drop files here, or click to select'}
-          </DropzoneText>
-          <DropzoneSubtext theme={currentTheme}>
-            Supports .arxml and .xsd files
-          </DropzoneSubtext>
-        </DropzoneContent>
+        <UploadCloud size={48} />
+        <UploadText>
+          {isDragActive ? "Drop the files here ..." : "Drag & drop files here, or click to select"}
+        </UploadText>
+        <SupportText>
+          {comparisonType === 'full' 
+            ? 'Full Comparison: Upload exactly 2 ARXML files + 1 optional XSD (max 3 files)'
+            : 'Schema Validation: Upload multiple ARXML files (min 2) + 1 optional XSD'
+          }
+        </SupportText>
       </DropzoneContainer>
 
-      {files.length > 0 && (
-        <FileList theme={currentTheme}>
-          {files.map((file, index) => (
-            <FileItem key={index} theme={currentTheme}>
-              <FileInfo theme={currentTheme}>
-                <FileIcon theme={currentTheme} />
-                <div>
-                  <FileName theme={currentTheme}>{file.name}</FileName>
-                  <FileSize theme={currentTheme}>{formatFileSize(file.size)}</FileSize>
-                </div>
-              </FileInfo>
-              <RemoveButton 
-                onClick={() => removeFile(index)}
-                theme={currentTheme}
-              >
-                <X size={16} />
-              </RemoveButton>
-            </FileItem>
-          ))}
-        </FileList>
-      )}
-
-      {validationMessage && (
-        <ValidationMessage 
-          isError={true}
-          theme={currentTheme}
-        >
-          <ValidationIcon isError={true}>
-            <AlertCircle size={16} />
-          </ValidationIcon>
-          <ValidationText isError={true} theme={currentTheme}>
-            {validationMessage}
-          </ValidationText>
-        </ValidationMessage>
-      )}
-
-      {files.length > 0 && !validationMessage && (
-        <ValidationMessage 
-          isError={false}
-          theme={currentTheme}
-        >
-          <ValidationIcon isError={false}>
-            <CheckCircle size={16} />
-          </ValidationIcon>
-          <ValidationText isError={false} theme={currentTheme}>
-            Files ready for comparison
-          </ValidationText>
-        </ValidationMessage>
-      )}
-
-      <SubmitButton 
-        onClick={handleSubmit}
-        disabled={isSubmitDisabled}
-        theme={currentTheme}
-      >
-        {isLoading ? 'Processing...' : 'Compare Files'}
-      </SubmitButton>
-    </UploadContainer>
-  )
+      <FileList>
+        {files.map(file => (
+          <FileItem key={file.name}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <FileText size={16} />
+              <FileName>{file.name}</FileName>
+            </div>
+            <RemoveButton onClick={(e) => removeFile(e, file.name)}>
+              <X size={16} />
+            </RemoveButton>
+          </FileItem>
+        ))}
+      </FileList>
+    </>
+  );
 }
 
-export default FileUpload
+export default FileUpload;
