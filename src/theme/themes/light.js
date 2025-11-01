@@ -18,5 +18,9 @@ export const lightTheme = {
     accent: COLORS.primary[500],
     danger: COLORS.danger[500],
     success: COLORS.success[500],
+    
+    // Light blue colors for headings
+    primaryLight: COLORS.primary[400],   // Light blue #60a5fa
+    primaryLighter: COLORS.primary[300], // Lighter blue #93c5fd
   }
 };
