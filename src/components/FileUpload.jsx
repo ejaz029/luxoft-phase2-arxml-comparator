@@ -6,18 +6,49 @@ import styled from 'styled-components'
 import { UploadCloud, FileText, X } from 'lucide-react'
 
 // --- Styled Components ---
+const FileUploadWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin: ${({ theme }) => theme.spacing.lg} auto;
+`;
+
 const DropzoneContainer = styled.div`
   border: 2px dashed ${({ theme }) => theme.colors.border};
   border-radius: ${({ theme }) => theme.borderRadius.md};
-  padding: ${({ theme }) => theme.spacing.xl};
+  padding: ${({ theme }) => theme.spacing.lg};
   text-align: center;
   cursor: pointer;
   background-color: ${({ theme, $isDragActive }) => 
     $isDragActive ? theme.colors.background : theme.colors.surface};
   transition: all 0.2s ease-in-out;
+  width: 100%;
+  max-width: 600px;
+  min-height: 180px;
+  max-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  overflow: hidden;
 
   &:hover {
     border-color: ${({ theme }) => theme.colors.primary};
+  }
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+    padding: ${({ theme }) => theme.spacing.md};
+    min-height: 160px;
+    max-height: 200px;
+  }
+
+  @media (max-width: 480px) {
+    padding: ${({ theme }) => theme.spacing.sm};
+    min-height: 140px;
+    max-height: 180px;
   }
 `;
 
@@ -25,16 +56,42 @@ const UploadText = styled.p`
   font-size: ${({ theme }) => theme.typography.size.base};
   color: ${({ theme }) => theme.colors.textSecondary};
   margin: ${({ theme }) => theme.spacing.md} 0 0 0;
+  word-wrap: break-word;
+  max-width: 100%;
+  
+  @media (max-width: 480px) {
+    font-size: ${({ theme }) => theme.typography.size.sm};
+    margin: ${({ theme }) => theme.spacing.sm} 0 0 0;
+  }
 `;
 
 const SupportText = styled.p`
   font-size: ${({ theme }) => theme.typography.size.sm};
   color: ${({ theme }) => theme.colors.textDisabled};
+  margin-top: ${({ theme }) => theme.spacing.xs};
+  word-wrap: break-word;
+  max-width: 100%;
+  padding: 0 ${({ theme }) => theme.spacing.xs};
+  line-height: 1.4;
+  overflow-wrap: break-word;
+  
+  @media (max-width: 480px) {
+    font-size: ${({ theme }) => theme.typography.size.xs};
+    line-height: 1.3;
+  }
 `;
 
 const FileList = styled.div`
   margin-top: ${({ theme }) => theme.spacing.lg};
   min-height: 50px;
+  width: 100%;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  
+  @media (max-width: 768px) {
+    max-width: 100%;
+  }
 `;
 
 const FileItem = styled.div`
@@ -109,10 +166,10 @@ function FileUpload({ files, setFiles, setError, validateFiles, comparisonType }
   };
 
   return (
-    <>
+    <FileUploadWrapper>
       <DropzoneContainer {...getRootProps()} $isDragActive={isDragActive}>
         <input {...getInputProps()} />
-        <UploadCloud size={48} />
+        <UploadCloud size={40} />
         <UploadText>
           {isDragActive ? "Drop the files here ..." : "Drag & drop files here, or click to select"}
         </UploadText>
@@ -137,7 +194,7 @@ function FileUpload({ files, setFiles, setError, validateFiles, comparisonType }
           </FileItem>
         ))}
       </FileList>
-    </>
+    </FileUploadWrapper>
   );
 }
 

@@ -86,12 +86,12 @@
 //       <MainContent theme={currentTheme}>
 //         {/* 2. CHECK IF LOADING */}
 //         {isLoading ? (
-          
+
 //           // 3. IF IT IS LOADING, SHOW YOUR STORY
 //           <ProgressIndicator />
 
 //         ) : !comparisonData ? (
-          
+
 //           // 4. IF NOT LOADING, SHOW THE FILE UPLOAD
 //           <FileUpload 
 //             onComparisonComplete={handleComparisonComplete}
@@ -99,7 +99,7 @@
 //             setIsLoading={setIsLoading} // This prop is important!
 //           />
 //         ) : (
-          
+
 //           // 5. IF DONE, SHOW THE RESULTS
 //           <div>
 //             <h2>Comparison Results</h2>
@@ -157,13 +157,13 @@
 //     <AppContainer theme={currentTheme}>
 //       <MainContent theme={currentTheme}>
 //         {isLoading ? (
-          
+
 //           // 1. If loading, show the progress indicator
 //           // We MUST pass the theme prop here to prevent crash
 //           <ProgressIndicator theme={currentTheme} />
 
 //         ) : !comparisonData ? (
-          
+
 //           // 2. If not loading, show file upload
 //           // We MUST pass the theme prop here to prevent crash
 //           <FileUpload 
@@ -173,7 +173,7 @@
 //           />
 
 //         ) : (
-          
+
 //           // 3. If done, show results
 //           <div>
 //             <h2>Comparison Results</h2>
@@ -194,8 +194,7 @@
 
 
 // src/App.jsx
-import React, { useState, useEffect } from 'react'
-import { useTheme } from './theme/ThemeProvider.jsx'
+import React, { useState, useEffect, useCallback } from 'react'
 import FileUpload from './components/FileUpload.jsx'
 import ComparisonOptions from './components/ComparisonOptions.jsx'
 import ProgressIndicator from './components/ProgressIndicator.jsx'
@@ -221,13 +220,6 @@ const Header = styled.div`
   margin-bottom: ${props => props.theme.spacing['2xl']};
 `
 
-const Title = styled.h1`
-  color: ${props => props.theme.colors.primaryLight || '#60a5fa'};
-  font-size: ${props => props.theme.typography.size['3xl']};
-  font-weight: ${props => props.theme.typography.weight.bold};
-  margin-bottom: ${props => props.theme.spacing.sm};
-`
-
 const DescriptiveTitle = styled.h2`
   color: ${props => props.theme.colors.primary || '#2563eb'};
   font-size: ${props => props.theme.typography.size['2xl']};
@@ -241,12 +233,6 @@ const DescriptiveSubtitle = styled.p`
   font-weight: ${props => props.theme.typography.weight.normal};
   margin-bottom: ${props => props.theme.spacing.md};
   opacity: 0.9;
-`
-
-const Subtitle = styled.p`
-  color: ${props => props.theme.colors.primaryLighter || '#93c5fd'};
-  font-size: ${props => props.theme.typography.size.lg};
-  opacity: 0.85;
 `
 
 const ErrorMessage = styled.div`
@@ -283,7 +269,6 @@ const ResultsContent = styled.pre`
 `
 
 function App() {
-  const { currentTheme } = useTheme()
   const [files, setFiles] = useState([])
   const [comparisonType, setComparisonType] = useState('full')
   const [error, setError] = useState(null)
@@ -291,12 +276,12 @@ function App() {
   const [comparisonData, setComparisonData] = useState(null)
 
   // ABASC-13: File Validation Logic
-  const validateFiles = (fileList) => {
+  const validateFiles = useCallback((fileList) => {
     const arxmlFiles = fileList.filter(f => f.name.toLowerCase().endsWith('.arxml'))
     const xsdFiles = fileList.filter(f => f.name.toLowerCase().endsWith('.xsd'))
 
     // Check for invalid file types
-    const invalidFiles = fileList.filter(f => 
+    const invalidFiles = fileList.filter(f =>
       !f.name.toLowerCase().endsWith('.arxml') && !f.name.toLowerCase().endsWith('.xsd')
     )
     if (invalidFiles.length > 0) {
@@ -343,14 +328,14 @@ function App() {
 
     setError(null)
     return true
-  }
+  }, [comparisonType])
 
   // Re-validate files when comparison type changes
   useEffect(() => {
     if (files.length > 0) {
       validateFiles(files)
     }
-  }, [comparisonType]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [comparisonType, files, validateFiles])
 
   // ABASC-15: Submit Button Logic
   const handleSubmit = async () => {
@@ -360,36 +345,36 @@ function App() {
 
     setIsLoading(true)
     setError(null)
-    
+
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 4000))
-      
+
       // Mock comparison data
       const mockData = {
         comparisonType,
         files: files.map(f => ({ name: f.name, size: f.size })),
         differences: [
-          { 
-            type: 'added', 
-            path: '/AUTOSAR/SwComponent/Port[@name="SignalPort_1"]', 
-            description: 'New signal port added with data type Int16' 
+          {
+            type: 'added',
+            path: '/AUTOSAR/SwComponent/Port[@name="SignalPort_1"]',
+            description: 'New signal port added with data type Int16'
           },
-          { 
-            type: 'modified', 
-            path: '/AUTOSAR/ECU/Config/Parameter[@id="BAUD_RATE"]', 
-            description: 'Baud rate changed from 500000 to 1000000' 
+          {
+            type: 'modified',
+            path: '/AUTOSAR/ECU/Config/Parameter[@id="BAUD_RATE"]',
+            description: 'Baud rate changed from 500000 to 1000000'
           },
-          { 
-            type: 'removed', 
-            path: '/AUTOSAR/Interface/LegacyInterface[@uuid="abc-123"]', 
-            description: 'Legacy interface removed' 
+          {
+            type: 'removed',
+            path: '/AUTOSAR/Interface/LegacyInterface[@uuid="abc-123"]',
+            description: 'Legacy interface removed'
           }
         ],
         summary: '3 differences found between the ARXML files.',
         timestamp: new Date().toISOString()
       }
-      
+
       setComparisonData(mockData)
     } catch (err) {
       setError('Comparison failed: ' + err.message)
@@ -409,7 +394,7 @@ function App() {
   // Check if submit should be disabled based on comparison type
   const getMinFilesRequired = () => {
     if (!comparisonType) return true // No comparison type selected
-    
+
     if (comparisonType === 'full') {
       // Full Comparison: exactly 2 ARXML files required
       const arxmlFiles = files.filter(f => f.name.toLowerCase().endsWith('.arxml'))
@@ -485,10 +470,10 @@ function App() {
                 onClick={handleSubmit}
                 disabled={isSubmitDisabled}
               >
-                {isLoading 
-                  ? 'Processing...' 
-                  : comparisonType === 'schema' 
-                    ? 'Start Validation' 
+                {isLoading
+                  ? 'Processing...'
+                  : comparisonType === 'schema'
+                    ? 'Start Validation'
                     : 'Start Comparison'
                 }
               </SubmitButton>
