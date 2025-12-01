@@ -140,3 +140,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000", # Common React port
     "http://127.0.0.1:5173",
 ]
+
+# Media files configuration for file uploads
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
