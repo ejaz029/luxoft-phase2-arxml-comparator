@@ -35,22 +35,80 @@ const SupportText = styled.p`
 const FileList = styled.div`
   margin-top: ${({ theme }) => theme.spacing.lg};
   min-height: 50px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: ${({ theme }) => theme.spacing.sm};
+  
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: ${({ theme }) => theme.colors.background};
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: ${({ theme }) => theme.colors.border};
+    border-radius: 3px;
+  }
 `;
 
 const FileItem = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${({ theme }) => theme.spacing.sm};
-  background-color: ${({ theme }) => theme.colors.background};
-  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  padding: ${({ theme }) => theme.spacing.md};
+  background-color: ${({ theme }) => theme.colors.surface};
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
   margin-bottom: ${({ theme }) => theme.spacing.sm};
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.background};
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+`;
+
+const FileInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  margin-left: ${({ theme }) => theme.spacing.sm};
+  overflow: hidden;
 `;
 
 const FileName = styled.span`
   font-family: ${({ theme }) => theme.typography.family.secondary};
   color: ${({ theme }) => theme.colors.textPrimary};
-  margin-left: ${({ theme }) => theme.spacing.sm};
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+`;
+
+const FileDetails = styled.div`
+  display: flex;
+  gap: ${({ theme }) => theme.spacing.md};
+  margin-top: ${({ theme }) => theme.spacing.xs};
+  font-size: ${({ theme }) => theme.typography.size.sm};
+  color: ${({ theme }) => theme.colors.textSecondary};
+`;
+
+const FileTypeBadge = styled.span`
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: ${({ theme }) => theme.typography.size.xs};
+  font-weight: 600;
+  text-transform: uppercase;
+  background-color: ${({ theme, $type }) => 
+    $type === 'arxml' ? 'rgba(66, 133, 244, 0.1)' : 'rgba(52, 168, 83, 0.1)'};
+  color: ${({ theme, $type }) => 
+    $type === 'arxml' ? theme.colors.primary : theme.colors.success};
 `;
 
 const RemoveButton = styled.button`
@@ -128,8 +186,16 @@ function FileUpload({ files, setFiles, setError, validateFiles, comparisonType }
         {files.map(file => (
           <FileItem key={file.name}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <FileText size={16} />
-              <FileName>{file.name}</FileName>
+              <FileText size={18} />
+              <FileInfo>
+                <FileName title={file.name}>{file.name}</FileName>
+                <FileDetails>
+                  <FileTypeBadge $type={file.name.endsWith('.arxml') ? 'arxml' : 'xsd'}>
+                    {file.name.endsWith('.arxml') ? 'ARXML' : 'XSD Schema'}
+                  </FileTypeBadge>
+                  <span>{(file.size / 1024).toFixed(1)} KB</span>
+                </FileDetails>
+              </FileInfo>
             </div>
             <RemoveButton onClick={(e) => removeFile(e, file.name)}>
               <X size={16} />
