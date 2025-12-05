@@ -14,9 +14,15 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
+
+# arxml_comparator/urls.py
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include  # <--- IMPORTANT: Add 'include' here
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # This line tells Django: "If the URL matches 'api/', go look in jobs/urls.py"
+    path('', include('jobs.urls')), 
 ]

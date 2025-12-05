@@ -42,6 +42,14 @@ class ComparisonJob(models.Model):
     # JSONField is flexible.
     results = models.JSONField(blank=True, null=True)
 
+    # --- NEW FIELDS FOR MULTIPLE UPLOADS & SCHEMA ---
+    # Stores the single schema file (XSD)
+    xsd_file = models.FileField(upload_to='schemas/', null=True, blank=True)
+    
+    # Stores the list of ARXML files as a JSON list of paths
+    uploaded_files = models.JSONField(default=list, blank=True)
+    # ------------------------------------------------
+
     # --- Bonus Fields (Best Practice) ---
     # Timestamps to track when the job was created and updated
     created_at = models.DateTimeField(auto_now_add=True)
