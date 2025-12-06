@@ -1,0 +1,20 @@
+1. Added Items (1 Item)
+The script explicitly inserts one specific signal into File B that does not exist in File A.What is it: 
+A System Signal named NEW_FEATURE_SIGNAL_X.
+Location: Inside the Vehicle_Signals AR-Package.
+UUID: new-uuid-12345
+
+2. Deleted Items (2 Items)
+The script loop runs 50 times for File A, but stops 2 iterations early for File B.
+What: Two Software Components were removed.
+Component_Node_48 and Component_Node_49
+Location: Inside the SoftwareComponents AR-Package.
+
+3. Modified Items (40 Items)
+The script changes the name of every 50th signal out of the 2,000 generated signals.
+What: The Short Name changed from Signal_X to Signal_X_RevB.
+Specific Examples:
+Signal_0 $\rightarrow$ Signal_0_RevB
+Signal_50 $\rightarrow$ Signal_50_RevB
+Signal_100 $\rightarrow$ Signal_100_RevB
+(This pattern continues every 50 signals up to Signal_1950)
