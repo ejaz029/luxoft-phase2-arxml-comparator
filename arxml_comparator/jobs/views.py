@@ -20,3 +20,22 @@ class SchemaValidationUploadView(APIView):
             )
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+from .serializers import FullComparisonUploadSerializer
+
+class FullComparisonUploadView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = FullComparisonUploadSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            job = serializer.save()
+            return Response(
+                {
+                    "message": "Files uploaded successfully", 
+                    "job_id": job.job_id,
+                    "status": job.status
+                },
+                status=status.HTTP_201_CREATED
+            )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

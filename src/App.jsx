@@ -86,12 +86,12 @@
 //       <MainContent theme={currentTheme}>
 //         {/* 2. CHECK IF LOADING */}
 //         {isLoading ? (
-          
+
 //           // 3. IF IT IS LOADING, SHOW YOUR STORY
 //           <ProgressIndicator />
 
 //         ) : !comparisonData ? (
-          
+
 //           // 4. IF NOT LOADING, SHOW THE FILE UPLOAD
 //           <FileUpload 
 //             onComparisonComplete={handleComparisonComplete}
@@ -99,7 +99,7 @@
 //             setIsLoading={setIsLoading} // This prop is important!
 //           />
 //         ) : (
-          
+
 //           // 5. IF DONE, SHOW THE RESULTS
 //           <div>
 //             <h2>Comparison Results</h2>
@@ -157,13 +157,13 @@
 //     <AppContainer theme={currentTheme}>
 //       <MainContent theme={currentTheme}>
 //         {isLoading ? (
-          
+
 //           // 1. If loading, show the progress indicator
 //           // We MUST pass the theme prop here to prevent crash
 //           <ProgressIndicator theme={currentTheme} />
 
 //         ) : !comparisonData ? (
-          
+
 //           // 2. If not loading, show file upload
 //           // We MUST pass the theme prop here to prevent crash
 //           <FileUpload 
@@ -173,7 +173,7 @@
 //           />
 
 //         ) : (
-          
+
 //           // 3. If done, show results
 //           <div>
 //             <h2>Comparison Results</h2>
@@ -296,7 +296,7 @@ function App() {
     const xsdFiles = fileList.filter(f => f.name.toLowerCase().endsWith('.xsd'))
 
     // Check for invalid file types
-    const invalidFiles = fileList.filter(f => 
+    const invalidFiles = fileList.filter(f =>
       !f.name.toLowerCase().endsWith('.arxml') && !f.name.toLowerCase().endsWith('.xsd')
     )
     if (invalidFiles.length > 0) {
@@ -360,37 +360,41 @@ function App() {
 
     setIsLoading(true)
     setError(null)
-    
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 4000))
-      
-      // Mock comparison data
-      const mockData = {
-        comparisonType,
-        files: files.map(f => ({ name: f.name, size: f.size })),
-        differences: [
-          { 
-            type: 'added', 
-            path: '/AUTOSAR/SwComponent/Port[@name="SignalPort_1"]', 
-            description: 'New signal port added with data type Int16' 
-          },
-          { 
-            type: 'modified', 
-            path: '/AUTOSAR/ECU/Config/Parameter[@id="BAUD_RATE"]', 
-            description: 'Baud rate changed from 500000 to 1000000' 
-          },
-          { 
-            type: 'removed', 
-            path: '/AUTOSAR/Interface/LegacyInterface[@uuid="abc-123"]', 
-            description: 'Legacy interface removed' 
-          }
-        ],
-        summary: '3 differences found between the ARXML files.',
-        timestamp: new Date().toISOString()
+      const formData = new FormData()
+
+      const arxmlFiles = files.filter(f => f.name.toLowerCase().endsWith('.arxml'))
+      const xsdFiles = files.filter(f => f.name.toLowerCase().endsWith('.xsd'))
+
+      arxmlFiles.forEach(file => {
+        formData.append('arxml_files', file)
+      })
+
+      if (xsdFiles.length > 0) {
+        formData.append('xsd_file', xsdFiles[0])
       }
-      
-      setComparisonData(mockData)
+
+      const response = await fetch('/api/jobs/upload/full/', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        let errorMessage = 'Upload failed'
+        try {
+          const errorData = await response.json()
+          errorMessage = JSON.stringify(errorData)
+        } catch (e) {
+          errorMessage = response.statusText
+        }
+        throw new Error(errorMessage)
+      }
+
+      const data = await response.json()
+
+      // Store the job info instead of the full diff (since it's async now)
+      setComparisonData(data)
     } catch (err) {
       setError('Comparison failed: ' + err.message)
     } finally {
@@ -409,7 +413,7 @@ function App() {
   // Check if submit should be disabled based on comparison type
   const getMinFilesRequired = () => {
     if (!comparisonType) return true // No comparison type selected
-    
+
     if (comparisonType === 'full') {
       // Full Comparison: exactly 2 ARXML files required
       const arxmlFiles = files.filter(f => f.name.toLowerCase().endsWith('.arxml'))
@@ -485,10 +489,10 @@ function App() {
                 onClick={handleSubmit}
                 disabled={isSubmitDisabled}
               >
-                {isLoading 
-                  ? 'Processing...' 
-                  : comparisonType === 'schema' 
-                    ? 'Start Validation' 
+                {isLoading
+                  ? 'Processing...'
+                  : comparisonType === 'schema'
+                    ? 'Start Validation'
                     : 'Start Comparison'
                 }
               </SubmitButton>
