@@ -14,8 +14,22 @@ const FileUploadWrapper = styled.div`
   margin: ${({ theme }) => theme.spacing.lg} auto;
 `;
 
-const DropzoneContainer = styled.div`
-  border: 2px dashed ${({ theme }) => theme.colors.border};
+const UploadBoxesContainer = styled.div`
+  display: flex;
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+`;
+
+const UploadBox = styled.div`
+  flex: 1;
+  border: 2px dashed ${({ theme, $isOriginal }) => 
+    $isOriginal ? theme.colors.border : theme.colors.primary};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   padding: ${({ theme }) => theme.spacing.lg};
   text-align: center;
@@ -23,33 +37,34 @@ const DropzoneContainer = styled.div`
   background-color: ${({ theme, $isDragActive }) => 
     $isDragActive ? theme.colors.background : theme.colors.surface};
   transition: all 0.2s ease-in-out;
-  width: 100%;
-  max-width: 600px;
   min-height: 180px;
-  max-height: 220px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 0 auto;
-  overflow: hidden;
+  position: relative;
 
   &:hover {
-    border-color: ${({ theme }) => theme.colors.primary};
+    border-color: ${({ theme, $isOriginal }) => 
+      $isOriginal ? theme.colors.textSecondary : theme.colors.primary};
   }
 
   @media (max-width: 768px) {
-    max-width: 100%;
-    padding: ${({ theme }) => theme.spacing.md};
     min-height: 160px;
-    max-height: 200px;
+    padding: ${({ theme }) => theme.spacing.md};
   }
 
   @media (max-width: 480px) {
-    padding: ${({ theme }) => theme.spacing.sm};
     min-height: 140px;
-    max-height: 180px;
+    padding: ${({ theme }) => theme.spacing.sm};
   }
+`;
+
+const UploadLabel = styled.h3`
+  font-size: ${({ theme }) => theme.typography.size.base};
+  color: ${({ theme }) => theme.colors.textPrimary};
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+  font-weight: ${({ theme }) => theme.typography.weight.semibold};
 `;
 
 const UploadText = styled.p`
@@ -81,60 +96,17 @@ const SupportText = styled.p`
   }
 `;
 
-const FileList = styled.div`
-  margin-top: ${({ theme }) => theme.spacing.lg};
-  min-height: 50px;
-  width: 100%;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-  max-height: 300px;
-  overflow-y: auto;
-  padding-right: ${({ theme }) => theme.spacing.sm};
-  
-  /* Custom scrollbar */
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: ${({ theme }) => theme.colors.background};
-    border-radius: 3px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: ${({ theme }) => theme.colors.border};
-    border-radius: 3px;
-  }
-  
-  @media (max-width: 768px) {
-    max-width: 100%;
-  }
-`;
-
-const FileItem = styled.div`
+const FileNameDisplay = styled.div`
+  margin-top: ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
+  background-color: ${({ theme }) => theme.colors.background};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${({ theme }) => theme.spacing.md};
-  background-color: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
-  margin-bottom: ${({ theme }) => theme.spacing.sm};
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.background};
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  }
-`;
-
-const FileInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  margin-left: ${({ theme }) => theme.spacing.sm};
-  overflow: hidden;
+  gap: ${({ theme }) => theme.spacing.sm};
+  width: 100%;
+  max-width: 100%;
 `;
 
 const FileName = styled.span`
@@ -144,28 +116,8 @@ const FileName = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 400px;
-`;
-
-const FileDetails = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing.md};
-  margin-top: ${({ theme }) => theme.spacing.xs};
-  font-size: ${({ theme }) => theme.typography.size.sm};
-  color: ${({ theme }) => theme.colors.textSecondary};
-`;
-
-const FileTypeBadge = styled.span`
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: ${({ theme }) => theme.typography.size.xs};
-  font-weight: 600;
-  text-transform: uppercase;
-  background-color: ${({ theme, $type }) => 
-    $type === 'arxml' ? 'rgba(66, 133, 244, 0.1)' : 'rgba(52, 168, 83, 0.1)'};
-  color: ${({ theme, $type }) => 
-    $type === 'arxml' ? theme.colors.primary : theme.colors.success};
+  flex: 1;
+  text-align: left;
 `;
 
 const RemoveButton = styled.button`
@@ -173,93 +125,139 @@ const RemoveButton = styled.button`
   border: none;
   color: ${({ theme }) => theme.colors.textDisabled};
   cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
   &:hover {
     color: ${({ theme }) => theme.colors.danger};
   }
 `;
 
 // --- File Upload Component ---
-function FileUpload({ files, setFiles, setError, validateFiles, comparisonType }) {
-  // Determine max files based on comparison type
-  const maxFiles = comparisonType === 'full' ? 3 : undefined; // Full: max 3 (2 ARXML + 1 XSD), Schema: unlimited
-  
-  const onDrop = useCallback((acceptedFiles, fileRejections) => {
+function FileUpload({ originalFile, setOriginalFile, updatedFile, setUpdatedFile, setError }) {
+  const handleOriginalDrop = useCallback((acceptedFiles, fileRejections) => {
     setError(null);
     
     if (fileRejections.length > 0) {
-      setError("Invalid file type. Only .arxml and .xsd are supported.");
+      setError("Invalid file type. Only .arxml files are supported.");
       return;
     }
     
-    // For Full Comparison, limit total files to 3
-    if (comparisonType === 'full') {
-      const totalFiles = files.length + acceptedFiles.length;
-      if (totalFiles > 3) {
-        setError('Maximum 3 files allowed for Full Comparison (2 ARXML + 1 optional XSD)');
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
+      if (!file.name.toLowerCase().endsWith('.arxml')) {
+        setError("Only .arxml files are allowed");
         return;
       }
+      setOriginalFile(file);
     }
-    
-    const newFiles = [...files, ...acceptedFiles];
-    
-    if (validateFiles(newFiles)) {
-      setFiles(newFiles);
-    }
-  }, [files, setFiles, setError, validateFiles, comparisonType]);
+  }, [setOriginalFile, setError]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
+  const handleUpdatedDrop = useCallback((acceptedFiles, fileRejections) => {
+    setError(null);
+    
+    if (fileRejections.length > 0) {
+      setError("Invalid file type. Only .arxml files are supported.");
+      return;
+    }
+    
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
+      if (!file.name.toLowerCase().endsWith('.arxml')) {
+        setError("Only .arxml files are allowed");
+        return;
+      }
+      setUpdatedFile(file);
+    }
+  }, [setUpdatedFile, setError]);
+
+  const originalDropzone = useDropzone({
+    onDrop: handleOriginalDrop,
     accept: {
       'application/xml': ['.arxml'],
-      'text/xml': ['.xsd'],
     },
-    maxFiles: maxFiles
+    maxFiles: 1,
+    multiple: false
   });
 
-  const removeFile = (e, fileName) => {
+  const updatedDropzone = useDropzone({
+    onDrop: handleUpdatedDrop,
+    accept: {
+      'application/xml': ['.arxml'],
+    },
+    maxFiles: 1,
+    multiple: false
+  });
+
+  const removeOriginalFile = (e) => {
     e.stopPropagation();
-    const newFiles = files.filter(f => f.name !== fileName);
-    setFiles(newFiles);
-    validateFiles(newFiles);
+    setOriginalFile(null);
+  };
+
+  const removeUpdatedFile = (e) => {
+    e.stopPropagation();
+    setUpdatedFile(null);
   };
 
   return (
     <FileUploadWrapper>
-      <DropzoneContainer {...getRootProps()} $isDragActive={isDragActive}>
-        <input {...getInputProps()} />
-        <UploadCloud size={40} />
-        <UploadText>
-          {isDragActive ? "Drop the files here ..." : "Drag & drop files here, or click to select"}
-        </UploadText>
-        <SupportText>
-          {comparisonType === 'full' 
-            ? 'Full Comparison: Upload exactly 2 ARXML files + 1 optional XSD (max 3 files)'
-            : 'Schema Validation: Upload multiple ARXML files (min 2) + 1 optional XSD'
-          }
-        </SupportText>
-      </DropzoneContainer>
-
-      <FileList>
-        {files.map(file => (
-          <FileItem key={file.name}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
+      <UploadBoxesContainer>
+        {/* Original File Box */}
+        <UploadBox 
+          {...originalDropzone.getRootProps()} 
+          $isDragActive={originalDropzone.isDragActive}
+          $isOriginal={true}
+        >
+          <input {...originalDropzone.getInputProps()} />
+          <UploadLabel>📂 Original File (Old)</UploadLabel>
+          <UploadCloud size={40} />
+          <UploadText>
+            {originalDropzone.isDragActive 
+              ? "Drop the file here ..." 
+              : "Drag & drop or click to select"}
+          </UploadText>
+          <SupportText>
+            Upload the older/original ARXML file
+          </SupportText>
+          {originalFile && (
+            <FileNameDisplay>
               <FileText size={18} />
-              <FileInfo>
-                <FileName title={file.name}>{file.name}</FileName>
-                <FileDetails>
-                  <FileTypeBadge $type={file.name.endsWith('.arxml') ? 'arxml' : 'xsd'}>
-                    {file.name.endsWith('.arxml') ? 'ARXML' : 'XSD Schema'}
-                  </FileTypeBadge>
-                  <span>{(file.size / 1024).toFixed(1)} KB</span>
-                </FileDetails>
-              </FileInfo>
-            </div>
-            <RemoveButton onClick={(e) => removeFile(e, file.name)}>
-              <X size={16} />
-            </RemoveButton>
-          </FileItem>
-        ))}
-      </FileList>
+              <FileName title={originalFile.name}>{originalFile.name}</FileName>
+              <RemoveButton onClick={removeOriginalFile}>
+                <X size={16} />
+              </RemoveButton>
+            </FileNameDisplay>
+          )}
+        </UploadBox>
+
+        {/* Updated File Box */}
+        <UploadBox 
+          {...updatedDropzone.getRootProps()} 
+          $isDragActive={updatedDropzone.isDragActive}
+          $isOriginal={false}
+        >
+          <input {...updatedDropzone.getInputProps()} />
+          <UploadLabel>🚀 Updated File (New)</UploadLabel>
+          <UploadCloud size={40} />
+          <UploadText>
+            {updatedDropzone.isDragActive 
+              ? "Drop the file here ..." 
+              : "Drag & drop or click to select"}
+          </UploadText>
+          <SupportText>
+            Upload the newer/updated ARXML file
+          </SupportText>
+          {updatedFile && (
+            <FileNameDisplay>
+              <FileText size={18} />
+              <FileName title={updatedFile.name}>{updatedFile.name}</FileName>
+              <RemoveButton onClick={removeUpdatedFile}>
+                <X size={16} />
+              </RemoveButton>
+            </FileNameDisplay>
+          )}
+        </UploadBox>
+      </UploadBoxesContainer>
     </FileUploadWrapper>
   );
 }

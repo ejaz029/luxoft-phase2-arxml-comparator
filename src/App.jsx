@@ -297,90 +297,48 @@ const ChangeItem = styled.li`
 
 function App() {
   const { currentTheme } = useTheme()
-  const [files, setFiles] = useState([])
+  const [originalFile, setOriginalFile] = useState(null)
+  const [updatedFile, setUpdatedFile] = useState(null)
   const [comparisonType, setComparisonType] = useState('full')
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [comparisonData, setComparisonData] = useState(null)
 
-  // ABASC-13: File Validation Logic
-  const validateFiles = useCallback((fileList) => {
-    const arxmlFiles = fileList.filter(f => f.name.toLowerCase().endsWith('.arxml'))
-    const xsdFiles = fileList.filter(f => f.name.toLowerCase().endsWith('.xsd'))
-
-    // Check for invalid file types
-    const invalidFiles = fileList.filter(f =>
-      !f.name.toLowerCase().endsWith('.arxml') && !f.name.toLowerCase().endsWith('.xsd')
-    )
-    if (invalidFiles.length > 0) {
-      setError('Only .arxml and .xsd files are allowed')
+  // Validate that both files are present
+  const validateFiles = useCallback(() => {
+    if (!originalFile || !updatedFile) {
+      setError('Both original and updated files are required')
       return false
     }
 
-    // Schema Validation: Multiple ARXML files (2+) + 1 optional XSD
-    if (comparisonType === 'schema') {
-      if (arxmlFiles.length < 2) {
-        setError('Schema Validation requires at least 2 ARXML files')
-        return false
-      }
-
-      if (xsdFiles.length > 1) {
-        setError('Maximum 1 XSD schema file is allowed')
-        return false
-      }
-
-      setError(null)
-      return true
+    if (!originalFile.name.toLowerCase().endsWith('.arxml')) {
+      setError('Original file must be an .arxml file')
+      return false
     }
 
-    // Full Comparison: Exactly 2 ARXML files + 1 optional XSD (max 3 files)
-    if (comparisonType === 'full') {
-      if (arxmlFiles.length !== 2) {
-        setError('Full Comparison requires exactly 2 ARXML files')
-        return false
-      }
-
-      if (xsdFiles.length > 1) {
-        setError('Maximum 1 XSD schema file is allowed')
-        return false
-      }
-
-      if (fileList.length > 3) {
-        setError('Maximum 3 files allowed (2 ARXML + 1 optional XSD)')
-        return false
-      }
-
-      setError(null)
-      return true
+    if (!updatedFile.name.toLowerCase().endsWith('.arxml')) {
+      setError('Updated file must be an .arxml file')
+      return false
     }
 
     setError(null)
     return true
-  }, [comparisonType])
-
-  // Re-validate files when comparison type changes
-  useEffect(() => {
-    if (files.length > 0) {
-      validateFiles(files)
-    }
-  }, [comparisonType, files, validateFiles])
+  }, [originalFile, updatedFile])
 
   // Vertical slice: upload two files and get summary + tree + Excel link
   const handleSubmit = async () => {
-    if (!validateFiles(files)) {
+    if (!originalFile || !updatedFile) {
+      setError('Please select both original and updated files')
       return
     }
 
-    // For the vertical slice we only support full comparison of exactly 2 ARXML files
-    const arxmlFiles = files.filter(f => f.name.toLowerCase().endsWith('.arxml'))
-    if (arxmlFiles.length !== 2) {
-      setError('Full Comparison requires exactly 2 ARXML files')
+    if (!validateFiles()) {
       return
     }
 
     const formData = new FormData()
-    formData.append('file1', arxmlFiles[0])
-    formData.append('file2', arxmlFiles[1])
+    formData.append('file1', originalFile)
+    formData.append('file2', updatedFile)
     formData.append('comparison_mode', 'full')
 
     setIsLoading(true)
@@ -422,29 +380,16 @@ function App() {
   }
 
   const handleNewComparison = () => {
-    setFiles([])
+    setOriginalFile(null)
+    setUpdatedFile(null)
     setComparisonType('full')
     setError(null)
     setComparisonData(null)
     setIsLoading(false)
   }
 
-  // Check if submit should be disabled based on comparison type
-  const getMinFilesRequired = () => {
-    if (!comparisonType) return true // No comparison type selected
-
-    if (comparisonType === 'full') {
-      // Full Comparison: exactly 2 ARXML files required
-      const arxmlFiles = files.filter(f => f.name.toLowerCase().endsWith('.arxml'))
-      return arxmlFiles.length !== 2
-    } else {
-      // Schema Validation: at least 2 ARXML files required
-      const arxmlFiles = files.filter(f => f.name.toLowerCase().endsWith('.arxml'))
-      return arxmlFiles.length < 2
-    }
-  }
-
-  const isSubmitDisabled = getMinFilesRequired() || isLoading || error !== null || !comparisonType
+  // Check if submit should be disabled - both files must be present
+  const isSubmitDisabled = !originalFile || !updatedFile || isLoading || error !== null || !comparisonType
 
   return (
     <AppContainer>
@@ -484,7 +429,8 @@ function App() {
               onOptionChange={(option) => {
                 setComparisonType(option)
                 // Clear files and error when switching comparison type
-                setFiles([])
+                setOriginalFile(null)
+                setUpdatedFile(null)
                 setError(null)
               }}
             />
@@ -492,25 +438,23 @@ function App() {
             {/* Step 2: Upload Files Based on Selected Comparison Type */}
             {comparisonType && (
               <FileUpload
-                files={files}
-                setFiles={setFiles}
+                originalFile={originalFile}
+                setOriginalFile={setOriginalFile}
+                updatedFile={updatedFile}
+                setUpdatedFile={setUpdatedFile}
                 setError={setError}
-                validateFiles={validateFiles}
-                comparisonType={comparisonType}
               />
             )}
 
             {/* Step 3: Submit Button */}
-            {files.length >= 2 && !error && (
+            {originalFile && updatedFile && !error && (
               <SubmitButton
                 onClick={handleSubmit}
                 disabled={isSubmitDisabled}
               >
                 {isLoading
                   ? 'Processing...'
-                  : comparisonType === 'schema'
-                    ? 'Start Validation'
-                    : 'Start Comparison'
+                  : 'Start Comparison'
                 }
               </SubmitButton>
             )}
