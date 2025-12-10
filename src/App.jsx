@@ -199,6 +199,8 @@ import FileUpload from './components/FileUpload.jsx'
 import ComparisonOptions from './components/ComparisonOptions.jsx'
 import ProgressIndicator from './components/ProgressIndicator.jsx'
 import SubmitButton from './components/SubmitButton.jsx'
+import ResultsDashboard from './components/ResultsDashboard.jsx'
+import { useTheme } from './theme/ThemeProvider.jsx'
 import styled from 'styled-components'
 
 const AppContainer = styled.div`
@@ -268,7 +270,33 @@ const ResultsContent = styled.pre`
   margin-bottom: ${props => props.theme.spacing.lg};
 `
 
+const DownloadLink = styled.a`
+  display: inline-block;
+  margin-bottom: ${props => props.theme.spacing.lg};
+  padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+  background-color: ${props => props.theme.colors.primary};
+  color: white;
+  border-radius: ${props => props.theme.borderRadius.md};
+  text-decoration: none;
+  font-weight: ${props => props.theme.typography.weight.medium};
+
+  &:hover {
+    opacity: 0.9;
+  }
+`
+
+const ChangeList = styled.ul`
+  list-style: none;
+  padding-left: 0;
+`
+
+const ChangeItem = styled.li`
+  margin-bottom: ${props => props.theme.spacing.xs};
+  font-size: ${props => props.theme.typography.size.sm};
+`
+
 function App() {
+  const { currentTheme } = useTheme()
   const [files, setFiles] = useState([])
   const [comparisonType, setComparisonType] = useState('full')
   const [error, setError] = useState(null)
@@ -337,47 +365,57 @@ function App() {
     }
   }, [comparisonType, files, validateFiles])
 
-  // ABASC-15: Submit Button Logic
+  // Vertical slice: upload two files and get summary + tree + Excel link
   const handleSubmit = async () => {
     if (!validateFiles(files)) {
       return
     }
 
+    // For the vertical slice we only support full comparison of exactly 2 ARXML files
+    const arxmlFiles = files.filter(f => f.name.toLowerCase().endsWith('.arxml'))
+    if (arxmlFiles.length !== 2) {
+      setError('Full Comparison requires exactly 2 ARXML files')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('file1', arxmlFiles[0])
+    formData.append('file2', arxmlFiles[1])
+    formData.append('comparison_mode', 'full')
+
     setIsLoading(true)
     setError(null)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 4000))
+      const response = await fetch('/api/jobs/full-comparison/', {
+        method: 'POST',
+        body: formData
+      })
 
-      // Mock comparison data
-      const mockData = {
-        comparisonType,
-        files: files.map(f => ({ name: f.name, size: f.size })),
-        differences: [
-          {
-            type: 'added',
-            path: '/AUTOSAR/SwComponent/Port[@name="SignalPort_1"]',
-            description: 'New signal port added with data type Int16'
-          },
-          {
-            type: 'modified',
-            path: '/AUTOSAR/ECU/Config/Parameter[@id="BAUD_RATE"]',
-            description: 'Baud rate changed from 500000 to 1000000'
-          },
-          {
-            type: 'removed',
-            path: '/AUTOSAR/Interface/LegacyInterface[@uuid="abc-123"]',
-            description: 'Legacy interface removed'
-          }
-        ],
-        summary: '3 differences found between the ARXML files.',
-        timestamp: new Date().toISOString()
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to run comparison')
       }
 
-      setComparisonData(mockData)
+      const data = await response.json()
+
+      // Transform tree_data array into grouped details object
+      const treeData = data.tree_data || []
+      const details = {
+        added: treeData.filter(item => item.Type === 'ADDED').map(item => ({ path: item.Path, ...item })),
+        removed: treeData.filter(item => item.Type === 'REMOVED').map(item => ({ path: item.Path, ...item })),
+        modified: treeData.filter(item => item.Type === 'MODIFIED').map(item => ({ path: item.Path, ...item }))
+      }
+
+      setComparisonData({
+        summary: data.summary,
+        details: details,
+        // Prefix with dev server host for local testing; adjust as needed for prod
+        excel_url: `http://127.0.0.1:8000${data.excel_url}`
+      })
     } catch (err) {
       setError('Comparison failed: ' + err.message)
+      console.error('API Error:', err)
     } finally {
       setIsLoading(false)
     }
@@ -423,16 +461,14 @@ function App() {
         {isLoading ? (
           <ProgressIndicator />
         ) : comparisonData ? (
-          <ResultsContainer>
-            <ResultsTitle>
-              Comparison Results
-            </ResultsTitle>
-            <ResultsContent>
-              {JSON.stringify(comparisonData, null, 2)}
-            </ResultsContent>
-            <SubmitButton onClick={handleNewComparison}>
-              Start New Comparison
-            </SubmitButton>
+          <ResultsContainer theme={currentTheme}>
+            <ResultsDashboard data={comparisonData} theme={currentTheme} />
+
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+              <SubmitButton onClick={handleNewComparison}>
+                Start New Comparison
+              </SubmitButton>
+            </div>
           </ResultsContainer>
         ) : (
           <>

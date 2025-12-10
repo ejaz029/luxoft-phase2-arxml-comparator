@@ -58,3 +58,9 @@ luxoft-phase2-arxml-comparator/
 * Gemini API Docs
 * Django Documentation
 * Celery + Redis Guide
+
+
+
+
+##pip install lxml
+##pip install xmlschema
