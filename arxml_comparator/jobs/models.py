@@ -42,6 +42,9 @@ class ComparisonJob(models.Model):
     # JSONField is flexible.
     results = models.JSONField(blank=True, null=True)
 
+    # Add this new column:
+    user_name = models.CharField(max_length=150, blank=True, null=True)
+
     # --- Bonus Fields (Best Practice) ---
     # Timestamps to track when the job was created and updated
     created_at = models.DateTimeField(auto_now_add=True)

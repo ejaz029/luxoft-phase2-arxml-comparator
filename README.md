@@ -64,3 +64,10 @@ luxoft-phase2-arxml-comparator/
 
 ##pip install lxml
 ##pip install xmlschema
+
+
+
+
+enhance ui
+login page
+SQLite Viewer - vscode extension

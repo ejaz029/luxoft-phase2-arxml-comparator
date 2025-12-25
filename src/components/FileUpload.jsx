@@ -20,23 +20,49 @@ const UploadBoxesContainer = styled.div`
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  position: relative;
 
   @media (max-width: 768px) {
     flex-direction: column;
   }
 `;
 
+const VsBadge = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: ${({ theme }) => theme.colors.surface};
+  border: 2px solid ${({ theme }) => theme.colors.primary};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: ${({ theme }) => theme.typography.weight.semibold};
+  color: ${({ theme }) => theme.colors.primary};
+  box-shadow: ${({ theme }) => theme.shadows.sm};
+  z-index: ${({ theme }) => theme.zIndex.floating || 10};
+
+  @media (max-width: 768px) {
+    position: static;
+    transform: none;
+    margin: ${({ theme }) => theme.spacing.md} auto;
+  }
+`;
+
 const UploadBox = styled.div`
   flex: 1;
-  border: 2px dashed ${({ theme, $isOriginal }) => 
-    $isOriginal ? theme.colors.border : theme.colors.primary};
+  border: 2px dashed #e2e8f0;
   border-radius: ${({ theme }) => theme.borderRadius.md};
   padding: ${({ theme }) => theme.spacing.lg};
   text-align: center;
   cursor: pointer;
-  background-color: ${({ theme, $isDragActive }) => 
-    $isDragActive ? theme.colors.background : theme.colors.surface};
-  transition: all 0.2s ease-in-out;
+  background-color: ${({ theme, $isDragActive }) =>
+    $isDragActive ? '#f0f9ff' : theme.colors.surface};
+  transition: all 0.3s ease;
   min-height: 180px;
   display: flex;
   flex-direction: column;
@@ -45,8 +71,10 @@ const UploadBox = styled.div`
   position: relative;
 
   &:hover {
-    border-color: ${({ theme, $isOriginal }) => 
-      $isOriginal ? theme.colors.textSecondary : theme.colors.primary};
+    border-color: ${({ theme }) => theme.colors.primary};
+    background-color: #f0f9ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   }
 
   @media (max-width: 768px) {
@@ -202,6 +230,9 @@ function FileUpload({ originalFile, setOriginalFile, updatedFile, setUpdatedFile
   return (
     <FileUploadWrapper>
       <UploadBoxesContainer>
+        <VsBadge>
+          VS
+        </VsBadge>
         {/* Original File Box */}
         <UploadBox 
           {...originalDropzone.getRootProps()} 

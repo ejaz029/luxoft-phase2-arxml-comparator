@@ -200,21 +200,40 @@ import ComparisonOptions from './components/ComparisonOptions.jsx'
 import ProgressIndicator from './components/ProgressIndicator.jsx'
 import SubmitButton from './components/SubmitButton.jsx'
 import ResultsDashboard from './components/ResultsDashboard.jsx'
+import Login from './components/Login.jsx'
 import { useTheme } from './theme/ThemeProvider.jsx'
+import { useAuth } from './contexts/AuthContext'
+import { LogOut } from 'lucide-react'
 import styled from 'styled-components'
 
 const AppContainer = styled.div`
   min-height: 100vh;
-  background-color: ${props => props.theme.colors.background};
+  background: linear-gradient(135deg, ${props => props.theme.colors.background} 0%, ${props => props.theme.colors.primaryLight || '#f0f9ff'} 100%);
   color: ${props => props.theme.colors.textPrimary};
   transition: all 0.3s ease;
   font-family: ${props => props.theme.typography.family.primary};
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(37, 99, 235, 0.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
 `
 
 const MainContent = styled.main`
   max-width: 1200px;
   margin: 0 auto;
   padding: ${props => props.theme.spacing.lg};
+  position: relative;
+  z-index: 1;
 `
 
 const Header = styled.div`
@@ -223,7 +242,10 @@ const Header = styled.div`
 `
 
 const DescriptiveTitle = styled.h2`
-  color: ${props => props.theme.colors.primary || '#2563eb'};
+  background: linear-gradient(135deg, ${props => props.theme.colors.primary || '#2563eb'} 0%, ${props => props.theme.colors.primaryLight || '#60a5fa'} 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   font-size: ${props => props.theme.typography.size['2xl']};
   font-weight: ${props => props.theme.typography.weight.semibold};
   margin-bottom: ${props => props.theme.spacing.xs};
@@ -239,19 +261,45 @@ const DescriptiveSubtitle = styled.p`
 
 const ErrorMessage = styled.div`
   padding: ${props => props.theme.spacing.md};
-  background-color: #fef2f2;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
   color: #991b1b;
   border-radius: ${props => props.theme.borderRadius.md};
   margin-bottom: ${props => props.theme.spacing.lg};
-  border: 1px solid #fecaca;
+  border: 2px solid #fecaca;
   font-size: ${props => props.theme.typography.size.sm};
+  display: flex;
+  align-items: center;
+  gap: ${props => props.theme.spacing.sm};
+  animation: fadeIn 0.3s ease-out;
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  &::before {
+    content: '⚠️';
+    font-size: 1.2em;
+  }
 `
 
 const ResultsContainer = styled.div`
   background-color: ${props => props.theme.colors.surface};
   border-radius: ${props => props.theme.borderRadius.lg};
   padding: ${props => props.theme.spacing.xl};
-  box-shadow: ${props => props.theme.shadows.md};
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(37, 99, 235, 0.1);
+  transition: box-shadow 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
 `
 
 const ResultsTitle = styled.h2`
@@ -295,8 +343,43 @@ const ChangeItem = styled.li`
   font-size: ${props => props.theme.typography.size.sm};
 `
 
+const HeaderActions = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${props => props.theme.spacing.lg};
+`
+
+const LogoutButton = styled.button`
+  padding: ${props => props.theme.spacing.sm} ${props => props.theme.spacing.md};
+  font-size: ${props => props.theme.typography.size.sm};
+  font-weight: ${props => props.theme.typography.weight.medium};
+  background-color: transparent;
+  color: ${props => props.theme.colors.textSecondary};
+  border: 2px solid ${props => props.theme.colors.border};
+  border-radius: ${props => props.theme.borderRadius.md};
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: ${props => props.theme.spacing.xs};
+
+  &:hover {
+    background-color: ${props => props.theme.colors.border};
+    color: ${props => props.theme.colors.textPrimary};
+    border-color: ${props => props.theme.colors.primary};
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`
+
 function App() {
   const { currentTheme } = useTheme()
+  const { isAuthenticated, isLoading: authLoading, logout, apiClient } = useAuth()
   const [originalFile, setOriginalFile] = useState(null)
   const [updatedFile, setUpdatedFile] = useState(null)
   const [comparisonType, setComparisonType] = useState('full')
@@ -345,17 +428,10 @@ function App() {
     setError(null)
 
     try {
-      const response = await fetch('/api/jobs/full-comparison/', {
-        method: 'POST',
-        body: formData
-      })
+      // Don't set Content-Type manually - axios will set it automatically with boundary for FormData
+      const response = await apiClient.post('/jobs/full-comparison/', formData)
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to run comparison')
-      }
-
-      const data = await response.json()
+      const data = response.data
 
       // Transform tree_data array into grouped details object
       const treeData = data.tree_data || []
@@ -372,8 +448,22 @@ function App() {
         excel_url: `http://127.0.0.1:8000${data.excel_url}`
       })
     } catch (err) {
-      setError('Comparison failed: ' + err.message)
       console.error('API Error:', err)
+      console.error('Error response:', err.response)
+      console.error('Error status:', err.response?.status)
+      
+      // Handle 401 specifically - token might be expired or missing
+      if (err.response?.status === 401) {
+        const errorMessage = err.response?.data?.detail || 'Authentication failed. Please log in again.'
+        setError(errorMessage)
+        // If token is invalid, the interceptor should handle refresh, but if that fails, logout
+        if (err.response?.data?.code === 'token_not_valid' || !localStorage.getItem('access_token')) {
+          logout()
+        }
+      } else {
+        const errorMessage = err.response?.data?.error || err.response?.data?.detail || err.message || 'Failed to run comparison'
+        setError('Comparison failed: ' + errorMessage)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -391,17 +481,46 @@ function App() {
   // Check if submit should be disabled - both files must be present
   const isSubmitDisabled = !originalFile || !updatedFile || isLoading || error !== null || !comparisonType
 
+  // Show login if not authenticated
+  if (authLoading) {
+    return (
+      <AppContainer>
+        <MainContent>
+          <ProgressIndicator />
+        </MainContent>
+      </AppContainer>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <Login />
+  }
+
+  if (authLoading) {
+    return <ProgressIndicator />
+  }
+
+  if (!isAuthenticated) {
+    return <Login />
+  }
+
   return (
     <AppContainer>
       <MainContent>
-        <Header>
-          <DescriptiveTitle>
-            AI-Powered AUTOSAR File Comparison
-          </DescriptiveTitle>
-          <DescriptiveSubtitle>
-            Intelligent Semantic Analysis for Automotive Development
-          </DescriptiveSubtitle>
-        </Header>
+        <HeaderActions theme={currentTheme}>
+          <div>
+            <DescriptiveTitle>
+              AI-Powered AUTOSAR File Comparison
+            </DescriptiveTitle>
+            <DescriptiveSubtitle>
+              Intelligent Semantic Analysis for Automotive Development
+            </DescriptiveSubtitle>
+          </div>
+          <LogoutButton theme={currentTheme} onClick={logout}>
+            <LogOut size={16} />
+            <span>Logout</span>
+          </LogoutButton>
+        </HeaderActions>
 
         {isLoading ? (
           <ProgressIndicator />

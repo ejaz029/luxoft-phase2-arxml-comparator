@@ -88,10 +88,11 @@ import ReactDOM from 'react-dom/client';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import App from './App.jsx';
 import { ThemeProvider, useTheme } from './theme/ThemeProvider.jsx';
+import { AuthProvider } from './contexts/AuthContext.jsx';
 import GlobalStyles from './theme/GlobalStyles.js';
 
 // This helper component is necessary to access the theme and provide it to styled-components
-const AppWithTheme = () => {
+function AppWithTheme() {
   const { currentTheme } = useTheme();
 
   return (
@@ -100,12 +101,14 @@ const AppWithTheme = () => {
       <App />
     </StyledThemeProvider>
   );
-};
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <AppWithTheme />
-    </ThemeProvider>
+    <AuthProvider>
+      <ThemeProvider>
+        <AppWithTheme />
+      </ThemeProvider>
+    </AuthProvider>
   </React.StrictMode>,
 ); 

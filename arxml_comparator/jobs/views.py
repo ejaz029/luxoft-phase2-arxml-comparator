@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 
 from .models import ComparisonJob
 # Make sure you have all these imports correct
@@ -19,13 +19,16 @@ class FullComparisonUploadView(APIView):
     """
     Vertical slice: accepts two ARXML files, runs comparison,
     generates an Excel report, and returns summary + tree data + Excel URL.
+    Requires JWT authentication.
     """
     parser_classes = (MultiPartParser, FormParser)
-    permission_classes = [AllowAny]
-    authentication_classes = []
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         print("Received Full Comparison Request...")
+        print(f"User: {request.user}")
+        print(f"User authenticated: {request.user.is_authenticated}")
+        print(f"Authorization header: {request.META.get('HTTP_AUTHORIZATION', 'NOT FOUND')}")
         serializer = FullComparisonUploadSerializer(data=request.data)
         
         if not serializer.is_valid():
@@ -58,6 +61,7 @@ class FullComparisonUploadView(APIView):
             status='PROCESSING',
             file_a_path=file1_path,
             file_b_path=file2_path,
+            user_name=request.user.username
         )
 
         try:
@@ -97,8 +101,7 @@ class FullComparisonUploadView(APIView):
 # --- VIEW 2: SCHEMA VALIDATION (Kept for completeness) ---
 class SchemaValidationUploadView(APIView):
     parser_classes = (MultiPartParser, FormParser)
-    permission_classes = [AllowAny]
-    authentication_classes = []
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         print("Received Schema Request...")
@@ -118,7 +121,8 @@ class SchemaValidationUploadView(APIView):
                     job_id=new_job_id,
                     status='UPLOADED',
                     uploaded_files=saved_file_names,
-                    xsd_file=xsd
+                    xsd_file=xsd,
+                    user_name=request.user.username
                 )
 
                 return Response({

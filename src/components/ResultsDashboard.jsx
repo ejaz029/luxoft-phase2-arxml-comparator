@@ -1,10 +1,14 @@
 // src/components/ResultsDashboard.jsx
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 import styled from 'styled-components';
 
-import { FilePlus, FileMinus, FileDiff, Download, CheckCircle } from 'lucide-react';
+import { FilePlus, FileMinus, FileDiff, Download, CheckCircle, Layers } from 'lucide-react';
+
+import TreeView from './TreeView';
+
+import { buildTreeData } from '../utils/treeBuilder';
 
 
 
@@ -28,7 +32,7 @@ const StatsGrid = styled.div`
 
   display: grid;
 
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
 
   gap: ${({ theme }) => theme.spacing.md};
 
@@ -232,7 +236,15 @@ const ListItem = styled.div`
 
 `;
 
+const PathText = styled.span`
 
+  word-break: break-all;
+
+  font-family: ${({ theme }) => theme.typography.family.secondary};
+
+  font-size: 0.85rem;
+
+`;
 
 const Badge = styled.span`
 
@@ -254,6 +266,70 @@ const Badge = styled.span`
 
 `;
 
+const TabContainer = styled.div`
+
+  display: flex;
+
+  gap: ${({ theme }) => theme.spacing.sm};
+
+  margin-bottom: ${({ theme }) => theme.spacing.md};
+
+  border-bottom: 2px solid ${({ theme }) => theme.colors.border};
+
+  padding-bottom: ${({ theme }) => theme.spacing.sm};
+
+`;
+
+const TabButton = styled.button`
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 10px 20px;
+
+  background: ${({ $active, theme }) => 
+
+    $active ? theme.colors.primary : 'transparent'};
+
+  color: ${({ $active, theme }) => 
+
+    $active ? 'white' : theme.colors.textPrimary};
+
+  border: 2px solid ${({ $active, theme }) => 
+
+    $active ? theme.colors.primary : theme.colors.border};
+
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+
+  cursor: pointer;
+
+  font-weight: ${({ $active }) => ($active ? '600' : '500')};
+
+  transition: all 0.2s ease;
+
+  font-size: 0.95rem;
+
+  
+
+  &:hover {
+
+    background: ${({ $active, theme }) => 
+
+      $active ? theme.colors.primaryDark || '#1d4ed8' : theme.colors.background};
+
+    border-color: ${({ $active, theme }) => 
+
+      $active ? theme.colors.primaryDark || '#1d4ed8' : theme.colors.primary};
+
+    transform: translateY(-1px);
+
+  }
+
+`;
+
 
 
 // --- The Component ---
@@ -261,6 +337,8 @@ const Badge = styled.span`
 function ResultsDashboard({ data, theme }) {
 
   const [filter, setFilter] = useState('ALL'); // 'ALL', 'ADDED', 'REMOVED', 'MODIFIED'
+
+  const [activeTab, setActiveTab] = useState('table'); // 'table' | 'tree'
 
 
 
@@ -282,11 +360,25 @@ function ResultsDashboard({ data, theme }) {
 
 
 
+  const total = summary.added + summary.removed + summary.modified;
+
+
+
   const filteredList = filter === 'ALL' 
 
     ? allChanges 
 
     : allChanges.filter(item => item.type === filter);
+
+
+
+  // Build tree data from filtered list
+
+  const treeData = useMemo(() => {
+
+    return buildTreeData(filteredList);
+
+  }, [filteredList]);
 
 
 
@@ -382,6 +474,26 @@ function ResultsDashboard({ data, theme }) {
 
         </StatCard>
 
+
+
+        <StatCard 
+
+          theme={theme} 
+
+          $color={theme.colors.primary || '#3b82f6'}
+
+          $active={filter === 'ALL'}
+
+          onClick={() => setFilter('ALL')}
+
+        >
+
+          <h3>{total}</h3>
+
+          <p><Layers size={14} style={{ marginRight: '4px' }} /> All Changes</p>
+
+        </StatCard>
+
       </StatsGrid>
 
 
@@ -420,43 +532,87 @@ function ResultsDashboard({ data, theme }) {
 
 
 
-      {/* 3. The List */}
+      {/* 3. Tab Switching Buttons */}
 
-      <ListContainer theme={theme}>
+      <TabContainer theme={theme}>
 
-        {filteredList.length > 0 ? (
+        <TabButton
 
-          filteredList.map((item, idx) => {
+          theme={theme}
 
-            const colors = getBadgeColor(item.type);
+          $active={activeTab === 'table'}
 
-            return (
+          onClick={() => setActiveTab('table')}
 
-              <ListItem key={idx} theme={theme}>
+        >
 
-                {getIcon(item.type)}
+          📄 Table View
 
-                <Badge $bg={colors.bg} $text={colors.text}>{item.type}</Badge>
+        </TabButton>
 
-                <span style={{ wordBreak: 'break-all' }}>{item.path || item.Path}</span>
+        <TabButton
 
-              </ListItem>
+          theme={theme}
 
-            );
+          $active={activeTab === 'tree'}
 
-          })
+          onClick={() => setActiveTab('tree')}
 
-        ) : (
+        >
 
-          <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+          🌳 Tree View
 
-            No items found for this category.
+        </TabButton>
 
-          </div>
+      </TabContainer>
 
-        )}
 
-      </ListContainer>
+
+      {/* 4. Content based on active tab */}
+
+      {activeTab === 'table' ? (
+
+        <ListContainer theme={theme}>
+
+          {filteredList.length > 0 ? (
+
+            filteredList.map((item, idx) => {
+
+              const colors = getBadgeColor(item.type);
+
+              return (
+
+                <ListItem key={idx} theme={theme}>
+
+                  {getIcon(item.type)}
+
+                  <Badge $bg={colors.bg} $text={colors.text}>{item.type}</Badge>
+
+                <PathText theme={theme}>{item.path || item.Path}</PathText>
+
+                </ListItem>
+
+              );
+
+            })
+
+          ) : (
+
+            <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+
+              No items found for this category.
+
+            </div>
+
+          )}
+
+        </ListContainer>
+
+      ) : (
+
+        <TreeView treeData={treeData} theme={theme} />
+
+      )}
 
 
 
@@ -469,6 +625,7 @@ function ResultsDashboard({ data, theme }) {
 
 
 export default ResultsDashboard;
+
 
 
 
